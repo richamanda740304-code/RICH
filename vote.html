@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TIPC 115年中階主管共識營 - 投票系統</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            display: flex;
+            gap: 30px;
+            max-width: 1000px;
+            width: 100%;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .main-title {
+            width: 100%;
+            text-align: center;
+            color: #1a5276;
+            font-size: 32px;
+            margin-top: 10px;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #2980b9;
+            letter-spacing: 1px;
+        }
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            flex: 1;
+            min-width: 320px;
+            display: flex;
+            flex-direction: column;
+        }
+        h2 {
+            text-align: center;
+            color: #2c3e50;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            font-size: 22px;
+        }
+        .desc-text {
+            font-size: 14px;
+            color: #7f8c8d;
+            text-align: center;
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+        .remaining-votes {
+            background-color: #e8f4f8;
+            color: #2980b9;
+            text-align: center;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-weight: bold;
+            font-size: 14px;
+            border: 1px solid #bde0ef;
+        }
+        .remaining-votes span {
+            color: #e74c3c;
+            font-size: 16px;
+            margin: 0 2px;
+        }
+        .scrollable-list {
+            max-height: 450px;
+            overflow-y: auto;
+            padding-right: 10px;
+            margin-bottom: 20px;
+            flex-grow: 1;
+        }
+        .scrollable-list::-webkit-scrollbar {
+            width: 6px;
+        }
+        .scrollable-list::-webkit-scrollbar-thumb {
+            background-color: #bdc3c7;
+            border-radius: 4px;
+        }
+        .group-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .group-row label {
+            flex: 1;
+            padding-right: 10px;
+            word-break: break-all;
+        }
+        select {
+            padding: 6px 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            outline: none;
+            font-size: 14px;
+            cursor: pointer;
+            min-width: 120px;
+        }
+        select:disabled {
+            background-color: #ecf0f1;
+            cursor: not-allowed;
+            color: #7f8c8d;
+        }
+        .btn-submit {
+            width: 100%;
+            padding: 15px;
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-top: auto;
+        }
+        .btn-submit:hover:not(:disabled) {
+            background-color: #219150;
+        }
+        .btn-submit:disabled {
+            background-color: #bdc3c7;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+        .error-msg {
+            color: #e74c3c;
+            font-size: 14px;
+            margin-bottom: 10px;
+            font-weight: bold;
+            text-align: center;
+            min-height: 20px;
+        }
+        .loading-text {
+            text-align: center;
+            color: #e67e22;
+            font-weight: bold;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- 主標題 -->
+        <h1 class="main-title">TIPC 115年中階主管共識營「凝聚共識」</h1>
+
+        <!-- 左側：團體獎投票區 -->
+        <div class="card">
+            <h2>🏆 凝聚共識團體獎-投票</h2>
+            <p class="desc-text">
+                第一名(3分)限1組，第二名(2分)限1組，優選(1分)限4組。<br>
+                <strong style="color: #e67e22;">不需投滿，名次可從缺。</strong>
+            </p>
+            
+            <div class="remaining-votes">
+                剩餘名額：第一名 <span id="group-left-3">1</span> ｜ 第二名 <span id="group-left-2">1</span> ｜ 優選 <span id="group-left-1">4</span>
+            </div>
+
+            <div id="group-voting-form" class="scrollable-list"></div>
+            
+            <div id="group-error-message" class="error-msg"></div>
+            <button id="btn-group" class="btn-submit" onclick="submitGroupVote()">送出團體獎選票</button>
+        </div>
+
+        <!-- 右側：最佳論述獎投票區 -->
+        <div class="card">
+            <h2>👤 凝聚共識最佳論述獎-投票</h2>
+            <p class="desc-text">
+                第一名(3分)限1位，第二名(2分)限1位，優選(1分)限4位。<br>
+                <strong style="color: #e67e22;">不需投滿，名次可從缺。</strong>
+            </p>
+            
+            <div class="remaining-votes">
+                剩餘名額：第一名 <span id="person-left-3">1</span> ｜ 第二名 <span id="person-left-2">1</span> ｜ 優選 <span id="person-left-1">4</span>
+            </div>
+
+            <!-- 加入讀取中的提示 -->
+            <div id="person-voting-form" class="scrollable-list">
+                <div class="loading-text">🔄 正在同步雲端名單，請稍候...</div>
+            </div>
+
+            <div id="person-error-message" class="error-msg"></div>
+            <button id="btn-person" class="btn-submit" onclick="submitPersonVote()">送出最佳論述獎選票</button>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // 👇 請在這裡貼上您在步驟 2 拿到的 CSV 網址 👇
+        // ==========================================
+        const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQvEZ34vE5uWPF2_BNVq8yTgsqNCmE9ti3lI_R6clrDUB0lbWQmGSjiZn0Q5SI08YgxxnPHGyIX6onq/pub?output=csv'; 
+
+        const NUM_GROUPS = 12;
+        const NUM_PERSONS = 40;
+        let hasVotedGroup = false;
+        let hasVotedPerson = false;
+
+        window.onload = function() {
+            // 1. 建立左側的組別清單 (不需要名字)
+            buildVotingList('group', NUM_GROUPS, '組', {});
+
+            // 2. 去 Google 表單抓取 CSV 資料
+            fetch(CSV_URL)
+                .then(response => response.text())
+                .then(csvText => {
+                    let cloudNames = {};
+                    // 將 CSV 文字按換行符號切開
+                    let rows = csvText.split('\n');
+                    
+                    // 從第 2 行開始讀 (跳過標題)
+                    for (let i = 1; i < rows.length; i++) {
+                        let cols = rows[i].split(','); // 按逗號切開
+                        if (cols.length >= 2) {
+                            let id = parseInt(cols[0].trim()); // 第一欄是編號
+                            let name = cols[1].trim();         // 第二欄是姓名
+                            // 清除可能多餘的引號 (Google CSV 特性)
+                            name = name.replace(/^"|"$/g, '');
+                            if (!isNaN(id) && name !== '') {
+                                cloudNames[id] = name;
+                            }
+                        }
+                    }
+                    // 抓取完成，建立右側人員清單
+                    buildVotingList('person', NUM_PERSONS, '位', cloudNames);
+                })
+                .catch(error => {
+                    console.error('讀取表單失敗：', error);
+                    // 如果網路斷線或抓失敗，依然顯示沒有名字的預設選單
+                    buildVotingList('person', NUM_PERSONS, '位', {});
+                });
+        };
+
+        // 建立清單的函數
+        function buildVotingList(type, count, labelSuffix, savedNames) {
+            const form = document.getElementById(`${type}-voting-form`);
+            form.innerHTML = '';
+            
+            for (let i = 1; i <= count; i++) {
+                const row = document.createElement('div');
+                row.className = 'group-row';
+
+                let displayName = `第 ${i} ${labelSuffix}`;
+                if (type === 'person' && savedNames[i]) {
+                    displayName = `第 ${i} 位 <span style="color:#2980b9; font-weight:bold;">(${savedNames[i]})</span>`;
+                }
+
+                row.innerHTML = `
+                    <label>${displayName}</label>
+                    <select id="${type}_${i}" onchange="updateDropdownOptions('${type}', ${count})">
+                        <option value="0">未選擇 (0分)</option>
+                        <option value="3">第一名 (3分)</option>
+                        <option value="2">第二名 (2分)</option>
+                        <option value="1">優選 (1分)</option>
+                    </select>
+                `;
+                form.appendChild(row);
+            }
+            updateDropdownOptions(type, count);
+        }
+
+        // 動態更新下拉選單選項與剩餘票數
+        function updateDropdownOptions(type, count) {
+            if (type === 'group' && hasVotedGroup) return;
+            if (type === 'person' && hasVotedPerson) return;
+
+            let counts = { '3': 0, '2': 0, '1': 0 };
+
+            for (let i = 1; i <= count; i++) {
+                let val = document.getElementById(`${type}_${i}`).value;
+                if (val !== '0') {
+                    counts[val]++;
+                }
+            }
+
+            document.getElementById(`${type}-left-3`).innerText = 1 - counts['3'];
+            document.getElementById(`${type}-left-2`).innerText = 1 - counts['2'];
+            document.getElementById(`${type}-left-1`).innerText = 4 - counts['1'];
+
+            for (let i = 1; i <= count; i++) {
+                let select = document.getElementById(`${type}_${i}`);
+                let currentVal = select.value;
+
+                for (let j = 0; j < select.options.length; j++) {
+                    let opt = select.options[j];
+                    let optVal = opt.value;
+
+                    if (optVal === '0') continue;
+
+                    if (optVal === '3' && counts['3'] >= 1 && currentVal !== '3') {
+                        opt.disabled = true; opt.style.display = 'none';
+                    } else if (optVal === '2' && counts['2'] >= 1 && currentVal !== '2') {
+                        opt.disabled = true; opt.style.display = 'none';
+                    } else if (optVal === '1' && counts['1'] >= 4 && currentVal !== '1') {
+                        opt.disabled = true; opt.style.display = 'none';
+                    } else {
+                        opt.disabled = false; opt.style.display = ''; 
+                    }
+                }
+            }
+        }
+
+        function submitGroupVote() {
+            if (hasVotedGroup) return;
+            const errorDiv = document.getElementById('group-error-message');
+            errorDiv.innerText = '';
+            let totalGroupScore = 0;
+
+            for (let i = 1; i <= NUM_GROUPS; i++) {
+                totalGroupScore += parseInt(document.getElementById(`group_${i}`).value);
+            }
+
+            if (totalGroupScore === 0) {
+                errorDiv.innerText = "❌ 您尚未進行評分，請至少選擇一組！";
+                return;
+            }
+
+            alert("✅ 【凝聚共識團體獎】投票成功！");
+            hasVotedGroup = true;
+            const btn = document.getElementById('btn-group');
+            btn.disabled = true;
+            btn.innerText = "已送出團體獎選票";
+
+            for (let i = 1; i <= NUM_GROUPS; i++) {
+                document.getElementById(`group_${i}`).disabled = true;
+            }
+        }
+
+        function submitPersonVote() {
+            if (hasVotedPerson) return;
+            const errorDiv = document.getElementById('person-error-message');
+            errorDiv.innerText = '';
+            let totalPersonScore = 0;
+
+            for (let i = 1; i <= NUM_PERSONS; i++) {
+                totalPersonScore += parseInt(document.getElementById(`person_${i}`).value);
+            }
+
+            if (totalPersonScore === 0) {
+                errorDiv.innerText = "❌ 您尚未進行評分，請至少選擇一位！";
+                return;
+            }
+
+            alert("✅ 【凝聚共識最佳論述獎】投票成功！");
+            hasVotedPerson = true;
+            const btn = document.getElementById('btn-person');
+            btn.disabled = true;
+            btn.innerText = "已送出最佳論述獎選票";
+
+            for (let i = 1; i <= NUM_PERSONS; i++) {
+                document.getElementById(`person_${i}`).disabled = true;
+            }
+        }
+    </script>
+</body>
+</html>
